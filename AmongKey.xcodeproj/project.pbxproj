@@ -16,11 +16,10 @@
 /* Begin PBXFileReference section */
 		A156D928256D78F50057805F /* AmongKey.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AmongKey.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A156D92B256D78F50057805F /* AmongKeyApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AmongKeyApp.swift; sourceTree = "<group>"; };
-		A156D92D256D78F50057805F /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		A156D92D256D78F50057805F /* ContentView.swift */ = {isa = PBXFileReference; indentWidth = 3; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		A156D92F256D78F60057805F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A156D932256D78F60057805F /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		A156D934256D78F60057805F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		A156D935256D78F60057805F /* AmongKey.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AmongKey.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -57,7 +56,6 @@
 				A156D92D256D78F50057805F /* ContentView.swift */,
 				A156D92F256D78F60057805F /* Assets.xcassets */,
 				A156D934256D78F60057805F /* Info.plist */,
-				A156D935256D78F60057805F /* AmongKey.entitlements */,
 				A156D931256D78F60057805F /* Preview Content */,
 			);
 			path = AmongKey;
@@ -268,7 +266,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = AmongKey/AmongKey.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"AmongKey/Preview Content\"";
@@ -292,7 +290,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = AmongKey/AmongKey.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"AmongKey/Preview Content\"";
