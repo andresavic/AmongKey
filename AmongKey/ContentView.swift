@@ -22,7 +22,7 @@ struct ContentView: View {
         VStack {
             Image("UI")
                .resizable()
-               .frame(width: 400, height: 400)
+               .frame(width: 425, height: 575)
          
             Text((self.state.scene != "" ? self.state.scene : "Nothing") + " - Confidence: " + String(self.state.score) + "%")
                .foregroundColor(Color.white)
@@ -36,7 +36,7 @@ struct ContentView: View {
                   .isHidden(self.state.download == "", remove: true)
                   .padding(.bottom, 25)
 
-        }.frame(minWidth: 400, maxWidth: 400, alignment: .topLeading).background(Color.black)
+        }.frame(minWidth: 425, maxWidth: 425, alignment: .topLeading).background(Color.black)
     }
 }
 
