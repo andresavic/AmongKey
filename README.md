@@ -14,12 +14,12 @@ Yes, it is a hacky workaround(and a very funny side project)... but until the ma
 
 ## Why ML for such a simple task?
 
-Among Us is heavily based on the in-game chat during the game. So in one second you are run through the spaceship and in the next second you have to chat with your crewmates.
-The chat on the Among Us mobile version is on the Mac even more broken, because you have to manually focus the inputfield and Return to send the message is not supported.
+Among Us is heavily based on the in-game chat during the game. So in one second you are runnning through the spaceship and in the next second you have to chat with your crewmates.
+The chat on the Among Us mobile version is on the Mac even more broken, because you have to manually focus the inputfield and Return to send is not supported.
 
-keeping the keymapping static would be a very bad UX because the mouse cursor would always jump on the screen when you are typing(W A S D Space).
+Keeping the keymapping static would be a very bad UX because the mouse cursor would always jump on the screen when you are typing(W A S D Space).
 
-My first tries used simple color checking of specific UI elements. But after testing there was so many game situations in which this not worked out very good or the effort was way to large to catch all edge cases. For example specific tasks(security cameras) or emergency crisis tints the whole screen red. Even color values changed when chaching the screen resolution.
+My first tries used simple color checking of specific UI elements. But after testing there was so many game situations in which this not worked out very well or the effort was way to large to catch all edge cases. For example specific tasks(security cameras) or emergency crisis tints the whole screen red. Even color values changed when changing the screen resolution.
 
 After over 15 ML model generation and collecting(playing the game 🤓) a lot of training data the results are very reliable. Even for game situations that the model was not trained on. Just mindblowing. 🤯
 
