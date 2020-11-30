@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A100B2EB2575110800719402 /* Update.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100B2EA2575110800719402 /* Update.swift */; };
+		A100B2EF25751C4900719402 /* Keymapping.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100B2EE25751C4900719402 /* Keymapping.swift */; };
+		A12481212572C84000EE8063 /* AmongUsClassifier.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = A12481202572C84000EE8063 /* AmongUsClassifier.mlmodel */; };
 		A156D92C256D78F50057805F /* AmongKeyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A156D92B256D78F50057805F /* AmongKeyApp.swift */; };
 		A156D92E256D78F50057805F /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A156D92D256D78F50057805F /* ContentView.swift */; };
 		A156D930256D78F60057805F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A156D92F256D78F60057805F /* Assets.xcassets */; };
@@ -14,6 +17,9 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		A100B2EA2575110800719402 /* Update.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Update.swift; sourceTree = "<group>"; };
+		A100B2EE25751C4900719402 /* Keymapping.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Keymapping.swift; sourceTree = "<group>"; };
+		A12481202572C84000EE8063 /* AmongUsClassifier.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; name = AmongUsClassifier.mlmodel; path = ../../../Downloads/AmongUsClassifier.mlmodel; sourceTree = "<group>"; };
 		A156D928256D78F50057805F /* AmongKey.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AmongKey.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A156D92B256D78F50057805F /* AmongKeyApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AmongKeyApp.swift; sourceTree = "<group>"; };
 		A156D92D256D78F50057805F /* ContentView.swift */ = {isa = PBXFileReference; indentWidth = 3; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -54,9 +60,12 @@
 			children = (
 				A156D92B256D78F50057805F /* AmongKeyApp.swift */,
 				A156D92D256D78F50057805F /* ContentView.swift */,
+				A12481202572C84000EE8063 /* AmongUsClassifier.mlmodel */,
 				A156D92F256D78F60057805F /* Assets.xcassets */,
 				A156D934256D78F60057805F /* Info.plist */,
 				A156D931256D78F60057805F /* Preview Content */,
+				A100B2EA2575110800719402 /* Update.swift */,
+				A100B2EE25751C4900719402 /* Keymapping.swift */,
 			);
 			path = AmongKey;
 			sourceTree = "<group>";
@@ -140,6 +149,9 @@
 			files = (
 				A156D92E256D78F50057805F /* ContentView.swift in Sources */,
 				A156D92C256D78F50057805F /* AmongKeyApp.swift in Sources */,
+				A100B2EB2575110800719402 /* Update.swift in Sources */,
+				A100B2EF25751C4900719402 /* Keymapping.swift in Sources */,
+				A12481212572C84000EE8063 /* AmongUsClassifier.mlmodel in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -279,6 +291,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
+				MARKETING_VERSION = 1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = at.andresavic.AmongKey;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
@@ -303,6 +316,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
+				MARKETING_VERSION = 1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = at.andresavic.AmongKey;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
