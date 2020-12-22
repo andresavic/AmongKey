@@ -13,16 +13,16 @@ func createKeybinding() {
         if (topmost == false) { return } //Only process inputs when Among Us is in focus
         
         switch (event.keyCode, gamestate) {
-        case (13, "Ingame"), (13, "Lobby"):
+        case (13, "Ingame"), (13, "Lobby"), (126, "Ingame"), (126, "Lobby"):
             up = 1
             break
-        case (1, "Ingame"), (1, "Lobby"):
+        case (1, "Ingame"), (1, "Lobby"), (125, "Ingame"), (125, "Lobby"):
             down = 1
             break
-        case (0, "Ingame"), (0, "Lobby"):
+        case (0, "Ingame"), (0, "Lobby"), (123, "Ingame"), (123, "Lobby"):
             left = 1
             break
-        case (2, "Ingame"), (2, "Lobby"):
+        case (2, "Ingame"), (2, "Lobby"), (124, "Ingame"), (124, "Lobby"):
             right = 1
             break
         default:
@@ -35,16 +35,16 @@ func createKeybinding() {
         if (topmost == false){ return } //Only process inputs when Among Us is in focus
         
         switch (event.keyCode, gamestate) {
-        case (13, "Ingame"), (13, "Lobby"):
+        case (13, "Ingame"), (13, "Lobby"), (126, "Ingame"), (126, "Lobby"):
             up = 0
             break
-        case (1, "Ingame"), (1, "Lobby"):
+        case (1, "Ingame"), (1, "Lobby"), (125, "Ingame"), (125, "Lobby"):
             down = 0
             break
-        case (0, "Ingame"), (0, "Lobby"):
+        case (0, "Ingame"), (0, "Lobby"), (123, "Ingame"), (123, "Lobby"):
             left = 0
             break
-        case (2, "Ingame"), (2, "Lobby"):
+        case (2, "Ingame"), (2, "Lobby"), (124, "Ingame"), (124, "Lobby"):
             right = 0
             break
         case (36, "Lobbychat"): // Return to send message
