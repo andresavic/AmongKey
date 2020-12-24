@@ -13,7 +13,7 @@
 		A156D92E256D78F50057805F /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A156D92D256D78F50057805F /* ContentView.swift */; };
 		A156D930256D78F60057805F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A156D92F256D78F60057805F /* Assets.xcassets */; };
 		A156D933256D78F60057805F /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A156D932256D78F60057805F /* Preview Assets.xcassets */; };
-		A1B2F8C525755574009C8049 /* AmongUsClassifier.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = A1B2F8C425755574009C8049 /* AmongUsClassifier.mlmodel */; };
+		A1E56DA025954D64007FCCDB /* AmongUsClassifier.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = A1E56D9F25954D64007FCCDB /* AmongUsClassifier.mlmodel */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -25,7 +25,7 @@
 		A156D92F256D78F60057805F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A156D932256D78F60057805F /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		A156D934256D78F60057805F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		A1B2F8C425755574009C8049 /* AmongUsClassifier.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = AmongUsClassifier.mlmodel; sourceTree = "<group>"; };
+		A1E56D9F25954D64007FCCDB /* AmongUsClassifier.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = AmongUsClassifier.mlmodel; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -58,9 +58,9 @@
 		A156D92A256D78F50057805F /* AmongKey */ = {
 			isa = PBXGroup;
 			children = (
+				A1E56D9F25954D64007FCCDB /* AmongUsClassifier.mlmodel */,
 				A156D92B256D78F50057805F /* AmongKeyApp.swift */,
 				A156D92D256D78F50057805F /* ContentView.swift */,
-				A1B2F8C425755574009C8049 /* AmongUsClassifier.mlmodel */,
 				A156D92F256D78F60057805F /* Assets.xcassets */,
 				A156D934256D78F60057805F /* Info.plist */,
 				A156D931256D78F60057805F /* Preview Content */,
@@ -147,7 +147,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A1B2F8C525755574009C8049 /* AmongUsClassifier.mlmodel in Sources */,
+				A1E56DA025954D64007FCCDB /* AmongUsClassifier.mlmodel in Sources */,
 				A156D92E256D78F50057805F /* ContentView.swift in Sources */,
 				A156D92C256D78F50057805F /* AmongKeyApp.swift in Sources */,
 				A100B2EB2575110800719402 /* Update.swift in Sources */,
@@ -291,7 +291,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
-				MARKETING_VERSION = 1.3;
+				MARKETING_VERSION = 1.4;
 				PRODUCT_BUNDLE_IDENTIFIER = at.andresavic.AmongKey;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
@@ -316,7 +316,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
-				MARKETING_VERSION = 1.3;
+				MARKETING_VERSION = 1.4;
 				PRODUCT_BUNDLE_IDENTIFIER = at.andresavic.AmongKey;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
