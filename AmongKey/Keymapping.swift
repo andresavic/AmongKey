@@ -48,7 +48,8 @@ func createKeybinding() {
             right = 0
             break
         case (36, "Lobbychat"): // Return to send message
-            if !isFullscreen() {
+            if (!isFullscreen()) {
+                print("PRESS KEY")
                 simulateKeypress(key: 53) //Escape to blur input field
             }
             amongusWindow()
@@ -57,7 +58,7 @@ func createKeybinding() {
             simulateClick(pos: (x: CHAT1_SEND_BUTTON.x - 350, y: CHAT1_SEND_BUTTON.y))
             break;
         case (36, "Meeting"): // Return to send message
-            if !isFullscreen() {
+            if (!isFullscreen()) {
                 simulateKeypress(key: 53) //Escape to blur input field
             }
             amongusWindow()

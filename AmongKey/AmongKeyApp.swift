@@ -137,6 +137,7 @@ func amongusWindow() {
             let bounds = windowDic["kCGWindowBounds"] as! [String: Double]
         
             if (bounds["Height"]! == 0 && bounds["Width"]! == 0) { return } //Fix for Macs with Touchbar
+            if (bounds["Height"]! <= 500 && bounds["Width"]! <=  500) { return } //Ignore chat input window
             
             originalPosition = (x: bounds["X"]!, y: bounds["Y"]!)
             originalSize = (height: bounds["Height"]!, width: bounds["Width"]!)
@@ -199,6 +200,9 @@ func amongusWindow() {
 }
 
 func isFullscreen() -> Bool {
+    print("------")
+    print(originalPosition)
+    print(originalSize)
     return (originalSize.height > 619 && originalPosition.x == 0.0 && originalPosition.y == 0.0)
 }
 
