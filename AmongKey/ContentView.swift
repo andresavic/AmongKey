@@ -22,7 +22,7 @@ struct ContentView: View {
         VStack {
             Image("UI")
                .resizable()
-               .frame(width: 400, height: 400)
+               .frame(width: 400, height: 520)
          
             Text((self.state.scene != "" ? self.state.scene : "Nothing") + " - Confidence: " + String(self.state.score) + "%")
                .foregroundColor(Color.white)
