@@ -20,7 +20,8 @@ class Update {
             return;
         }
         
-        URLSession.shared.dataTask(with: self.url!) { data, response, error in
+        let request = URLRequest(url: self.url!, cachePolicy: URLRequest.CachePolicy.reloadIgnoringLocalCacheData, timeoutInterval: 60.0)
+        URLSession.shared.dataTask(with: request) { data, response, error in
           if let data = data {
              do {
                 let res = try JSONDecoder().decode(UpdateJson.self, from: data)
