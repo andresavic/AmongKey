@@ -135,10 +135,9 @@ func amongusWindow() {
         if (windowDic["kCGWindowOwnerName"] as! String == "Among Us" && windowDic["kCGWindowStoreType"] as! Int == 1 && windowDic["kCGWindowAlpha"] as! Int == 1) {
             let ownerProcessID = windowDic["kCGWindowOwnerPID"] as! Int
             let bounds = windowDic["kCGWindowBounds"] as! [String: Double]
-        
-            if (bounds["Height"]! == 0 && bounds["Width"]! == 0) { return } //Fix for Macs with Touchbar
-            if (bounds["Height"]! <= 500 && bounds["Width"]! <=  500) { return } //Ignore chat input window
             
+            if (bounds["Height"]! <= 500 || bounds["Width"]! <= 500) { return } //Fix for Macs with Touchbar
+        
             originalPosition = (x: bounds["X"]!, y: bounds["Y"]!)
             originalSize = (height: bounds["Height"]!, width: bounds["Width"]!)
             
