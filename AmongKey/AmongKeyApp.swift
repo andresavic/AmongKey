@@ -132,7 +132,7 @@ func amongusWindow() {
    var image: CGImage
    for windowDic in cgWindowListInfo2! {
         //Determine the Among Us window
-        if (windowDic["kCGWindowOwnerName"] as! String == "Among Us" && windowDic["kCGWindowStoreType"] as! Int == 1 && windowDic["kCGWindowAlpha"] as! Int == 1) {
+        if (windowDic["kCGWindowOwnerName"] as! String == "Among Us" && windowDic["kCGWindowStoreType"] as! Int == 1 /*&& windowDic["kCGWindowAlpha"] as! Int == 1*/) {
             let ownerProcessID = windowDic["kCGWindowOwnerPID"] as! Int
             let bounds = windowDic["kCGWindowBounds"] as! [String: Double]
             
