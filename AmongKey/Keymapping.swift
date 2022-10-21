@@ -53,20 +53,20 @@ func createKeybinding() {
                 simulateKeypress(key: 53) //Escape to blur input field
             }
             amongusWindow()
-            simulateClick(pos: CHAT1_SEND_BUTTON)
+            simulateClick(pos: LOBBY_CHAT_SEND_BUTTON)
             usleep(10000)
-            simulateClick(pos: (x: CHAT1_SEND_BUTTON.x - 350, y: CHAT1_SEND_BUTTON.y))
+            simulateClick(pos: (x: LOBBY_CHAT_SEND_BUTTON.x - 350, y: LOBBY_CHAT_SEND_BUTTON.y))
             break;
         case (36, "Meeting"): // Return to send message
             if (!isFullscreen()) {
                 simulateKeypress(key: 53) //Escape to blur input field
             }
             amongusWindow()
-            simulateClick(pos: CHAT2_SEND_BUTTON)
+            simulateClick(pos: MEETING_CHAT_SEND_BUTTON)
             usleep(10000)
-            simulateClick(pos: (x: CHAT2_SEND_BUTTON.x - 350, y: CHAT2_SEND_BUTTON.y))
+            simulateClick(pos: (x: MEETING_CHAT_SEND_BUTTON.x - 350, y: MEETING_CHAT_SEND_BUTTON.y))
             break;
-        case (49, "Ingame"), (14, "Ingame"), (49, "Lobby"), (14, "Lobby"):
+        case (49, "Ingame"), (14, "Ingame"), (49, "Lobby"), (14, "Lobby"): // Space button
             simulateClick(pos: USE_BUTTON)
             break;
         case (53, "Ingame"), (53, "Lobby"):
@@ -75,6 +75,12 @@ func createKeybinding() {
         case (12, "Ingame"):  // Q - Kill
             simulateClick(pos: KILL_BUTTON)
             break;
+        case (9, "Ingame"):  // V - Vent
+            simulateClick(pos: VENT_BUTTON)
+            break;
+        case (3, "Ingame"): // F - Role Ability
+            simulateClick(pos: ROLE_BUTTON)
+            break;
         case (15, "Ingame"):  // R - Report
             simulateClick(pos: REPORT_BUTTON)
             break;
@@ -82,14 +88,14 @@ func createKeybinding() {
             simulateClick(pos: MAP_BUTTON)
             break;
         case (48, "Lobby"): // Tab to open chat and focus input field
-            simulateClick(pos: CHAT1_BUTTON)
+            simulateClick(pos: LOBBY_CHAT_BUTTON)
             usleep(100000)
-            simulateClick(pos: (x: CHAT1_SEND_BUTTON.x - 250, y: CHAT1_SEND_BUTTON.y))
+            simulateClick(pos: (x: LOBBY_CHAT_SEND_BUTTON.x - 250, y: LOBBY_CHAT_SEND_BUTTON.y))
             break;
         case (48, "Meeting"): // Tab to open chat and focus input field
-            simulateClick(pos: CHAT2_BUTTON)
+            simulateClick(pos: MEETING_CHAT_BUTTON)
             usleep(100000)
-            simulateClick(pos: (x: CHAT2_SEND_BUTTON.x - 250, y: CHAT2_SEND_BUTTON.y))
+            simulateClick(pos: (x: MEETING_CHAT_SEND_BUTTON.x - 250, y: MEETING_CHAT_SEND_BUTTON.y))
             break;
         case (18, _): //1 - Store AI Training Data Ingame
             storeScreenshot = "Ingame"
