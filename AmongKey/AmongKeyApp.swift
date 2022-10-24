@@ -26,19 +26,34 @@ var down: Int = 0
 var left: Int = 0
 var right: Int = 0
 
-var mouseIsDown: Bool = false;
-var mouseIsClicking: Bool = false;
+var mouseIsDown: Bool = false
+var mouseIsClicking: Bool = false
+var mouseClickLock = NSLock()
 
-let JOYSTICK = (x: 227.589, y: 1873.250)
-let USE_BUTTON = (x: 2536.0, y: 1873.0)
+
+func calculateUIPosition(ui_position: (ui_x: Int, ui_y: Int)) -> (x: Double, y: Double) {
+    let bottom_right_button = (x: 2536.0, y: 1873.0)
+    let vertical_spacing = 400.0;
+    let horizontal_spacing = 350.0;
+    return (x: bottom_right_button.x - horizontal_spacing * Double(ui_position.ui_x),
+            y: bottom_right_button.y - vertical_spacing * Double(ui_position.ui_y))
+}
+
+
+let JOYSTICK = (x: 227.589, y: 1873.375)
+let USE_BUTTON = calculateUIPosition(ui_position: (ui_x: 0, ui_y: 0))
+let KILL_BUTTON = calculateUIPosition(ui_position: (ui_x: 0, ui_y: 1))
+let REPORT_BUTTON = calculateUIPosition(ui_position: (ui_x: 1, ui_y: 0))
+let SABOTAGE_BUTTON = calculateUIPosition(ui_position: (ui_x: 1, ui_y: 1))
+let VENT_BUTTON = calculateUIPosition(ui_position: (ui_x: 2, ui_y: 1))
+let ROLE_BUTTON = calculateUIPosition(ui_position: (ui_x: 2, ui_y: 0))
+
 let ESC_BUTTON = (x: 120.0, y: 420.0)
-let KILL_BUTTON = (x: 2100.0, y: 1873.0)
 let MAP_BUTTON = (x: 2665.0, y: 421.0)
-let REPORT_BUTTON = (x: 2550.0, y: 1396.0)
-let CHAT1_BUTTON = (x: 2395.0, y: 110.0)
-let CHAT2_BUTTON = (x: 2411.0, y: 301.0)
-let CHAT1_SEND_BUTTON = (x: 2105.0, y: 1585.0)
-let CHAT2_SEND_BUTTON = (x: 2116.0, y: 1817.0)
+let LOBBY_CHAT_BUTTON = (x: 2395.0, y: 110.0)
+let MEETING_CHAT_BUTTON = (x: 2411.0, y: 301.0)
+let LOBBY_CHAT_SEND_BUTTON = (x: 2105.0, y: 1585.0)
+let MEETING_CHAT_SEND_BUTTON = (x: 1850.0, y: 1650.0)
 
 var originalPosition = (x: 0.0, y: 0.0)
 var originalSize = (height: 0.0, width: 0.0)
@@ -71,8 +86,7 @@ func setup() {
     if (permission) {
         createKeybinding()
     }
-   
-   //Run movment all 25ms
+   //Run movement all 25ms
    Timer.scheduledTimer(withTimeInterval: 0.025, repeats: true) { _ in
       movement()
    }
@@ -86,15 +100,15 @@ func setup() {
 
 func movement() {
     if (X == -1 && Y == -1) { rescueMouse(); return }
-
-    if (mouseIsClicking == true){ return }
-
+    
     if (topmost == false) { rescueMouse(); return }
 
     if (gamestate != "Ingame" && gamestate != "Lobby") { rescueMouse(); return }
 
     if ((up + down + left + right) == 0) { rescueMouse(); return }
     
+    let lockSuccess = mouseClickLock.try()
+    if (!lockSuccess){ return }
     var joystickY: Double = calcPos(pos: JOYSTICK).y
     var joystickX: Double = calcPos(pos: JOYSTICK).x
 
@@ -114,6 +128,7 @@ func movement() {
 
     mouseDown(pos: CGPoint(x: lastX, y: lastY));
     mouseIsDown = true
+    mouseClickLock.unlock()
 }
 
 func calcPos(pos: (x: Double, y: Double)) -> (x: Double, y: Double) {
@@ -228,14 +243,18 @@ func simulateClick(pos: (x: Double, y: Double)) {
     if (X == -1 && Y == -1) {
         return;
     }
-    let pos = CGPoint(x: X + calcPos(pos: pos).x, y: Y + calcPos(pos: pos).y)
-    mouseIsClicking = true
-    rescueMouse()
-    usleep(50000)
-    mouseDown(pos: pos)
-    usleep(50000)
-    mouseUp(pos: pos)
-    mouseIsClicking = false
+    let clickEventWaitTime : useconds_t = 10000;
+    DispatchQueue.global(qos:.background).async {
+        let pos = CGPoint(x: X + calcPos(pos: pos).x, y: Y + calcPos(pos: pos).y)
+        mouseClickLock.lock()
+        rescueMouse()
+        usleep(clickEventWaitTime)
+        mouseDown(pos: pos)
+        usleep(clickEventWaitTime)
+        mouseUp(pos: pos)
+        usleep(clickEventWaitTime)
+        mouseClickLock.unlock()
+    }
 }
 
 func simulateKeypress(key: UInt16) {
@@ -243,6 +262,7 @@ func simulateKeypress(key: UInt16) {
    let keyDownEvent = CGEvent(keyboardEventSource: nil, virtualKey: key, keyDown: true)
    keyDownEvent?.flags = CGEventFlags.maskCommand
    keyDownEvent?.post(tap: CGEventTapLocation.cghidEventTap)
+   
    usleep(10000)
    let keyUpEvent = CGEvent(keyboardEventSource: nil, virtualKey: key, keyDown: false)
    keyUpEvent?.flags = CGEventFlags.maskCommand
