@@ -9,6 +9,7 @@ import SwiftUI
 import CoreML
 import Vision
 import ImageIO
+import ScreenCaptureKit
 
 @main
 struct AmongKeyApp: App {
@@ -65,6 +66,8 @@ var Height: Double = -1 //Height of the Among Us Window
 var Width: Double = -1 //Width of the Among Us Window
 
 var topmost: Bool = false // Is Among Us in focus
+
+var captureInProgress: Bool = false // Guard so overlapping async captures don't pile up
 
 var gamestate: String = "Menu" //Curent game state
 
@@ -144,14 +147,16 @@ func amongusWindow() {
    let cgWindowListInfo = CGWindowListCopyWindowInfo(options, CGWindowID(0))
    let cgWindowListInfo2 = cgWindowListInfo as NSArray? as? [[String: AnyObject]]
    let frontMostAppId = NSWorkspace.shared.frontmostApplication!.processIdentifier
-   var image: CGImage
    for windowDic in cgWindowListInfo2! {
-        //Determine the Among Us window
-        if (windowDic["kCGWindowOwnerName"] as! String == "Among Us" && windowDic["kCGWindowStoreType"] as! Int == 1 && windowDic["kCGWindowAlpha"] as! Int == 1) {
+        //Determine the Among Us window.
+        //The iPad-on-Mac build reports its window name as "AmongUs" (no space) instead of
+        //"Among Us", so normalise (lowercase + strip spaces) before comparing.
+        let ownerName = (windowDic["kCGWindowOwnerName"] as? String) ?? ""
+        if (ownerName.lowercased().replacingOccurrences(of: " ", with: "") == "amongus") {
             let ownerProcessID = windowDic["kCGWindowOwnerPID"] as! Int
             let bounds = windowDic["kCGWindowBounds"] as! [String: Double]
-            
-            if (bounds["Height"]! <= 500 || bounds["Width"]! <= 500) { return } //Fix for Macs with Touchbar
+
+            if (bounds["Height"]! <= 500 || bounds["Width"]! <= 500) { continue } //Skip tiny helper windows
         
             originalPosition = (x: bounds["X"]!, y: bounds["Y"]!)
             originalSize = (height: bounds["Height"]!, width: bounds["Width"]!)
@@ -174,42 +179,90 @@ func amongusWindow() {
             topmost = (frontMostAppId == ownerProcessID)
             
             if (topmost == false) { return } //Only capture Among Us window when it is in focus
-            
-            //Create capture of Window
-            guard let windowImage: CGImage =
-             CGWindowListCreateImage(.null, .optionIncludingWindow, (windowDic["kCGWindowNumber"] as! NSNumber).uint32Value,
-                                     [.boundsIgnoreFraming, .nominalResolution]) else { return }
-            
-            //Push the capture into the Image Classifier model
-            //Source: https://developer.apple.com/documentation/createml/creating_an_image_classifier_model
-            do {
-                
-                if (isFullscreen()){
-                    //Crop when Among Us runs in Fullscreen
-                    let cropZone = CGRect(x: X, y: 0, width: Width, height: Height)
-                    image = windowImage.cropping(to: cropZone)!
-                }else{
-                    image = windowImage
-                }
-                
-                let model = try VNCoreMLModel(for: AmongUsClassifier(configuration: MLModelConfiguration()).model)
-                let request = VNCoreMLRequest(model: model, completionHandler: AmongUsClassifierResult)
-                let handler = VNImageRequestHandler(cgImage: image)
-                try handler.perform([request])
-            } catch {
-              print(error)
-            }
-            
-            //Write capture to disk as image for training data purposes
-            if (storeScreenshot != "") {
-                let picturesDirectory = FileManager.default.urls(for: .picturesDirectory, in: .userDomainMask)[0]
 
-                let imageUrl = picturesDirectory.appendingPathComponent("/Training Data/" + storeScreenshot + "/among" + UUID().uuidString + ".png", isDirectory: false)
-                try? image.png!.write(to: imageUrl)
-                
-                storeScreenshot = ""
+            //Capture the Among Us window and push it into the Image Classifier model.
+            //We only ever need a single still frame every 250ms, so a one-shot capture is enough.
+            let windowID = (windowDic["kCGWindowNumber"] as! NSNumber).uint32Value
+            captureWindow(windowID: windowID) { captured in
+                guard let captured = captured else { return }
+                processCapturedImage(captured)
             }
       }
+   }
+}
+
+//Capture a single window image.
+//macOS 14 (Sonoma) deprecated CGWindowListCreateImage in favour of ScreenCaptureKit,
+//so we use SCScreenshotManager on 14+ and fall back to the old API on older systems.
+//Both paths require the user to grant "Screen Recording" permission in System Settings.
+func captureWindow(windowID: CGWindowID, completion: @escaping (CGImage?) -> Void) {
+   if (captureInProgress) { return } //Skip if a previous capture is still running
+   captureInProgress = true
+
+   if #available(macOS 14.0, *) {
+      let scale = NSScreen.main?.backingScaleFactor ?? 2.0
+      Task {
+         defer { captureInProgress = false }
+         do {
+            let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
+            guard let window = content.windows.first(where: { $0.windowID == windowID }) else {
+               completion(nil); return
+            }
+            let filter = SCContentFilter(desktopIndependentWindow: window)
+            let config = SCStreamConfiguration()
+            config.width = Int(window.frame.width * scale)
+            config.height = Int(window.frame.height * scale)
+            config.showsCursor = false //Don't capture our injected cursor
+            let image = try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: config)
+            completion(image)
+         } catch {
+            print("ScreenCaptureKit capture failed: \(error)")
+            completion(nil)
+         }
+      }
+   } else {
+      //Legacy fallback for macOS 11-13
+      let image = CGWindowListCreateImage(.null, .optionIncludingWindow, windowID,
+                                          [.boundsIgnoreFraming, .nominalResolution])
+      captureInProgress = false
+      completion(image)
+   }
+}
+
+//Run the captured frame through the CoreML image classifier (and optionally save it as training data).
+//Source: https://developer.apple.com/documentation/createml/creating_an_image_classifier_model
+func processCapturedImage(_ windowImage: CGImage) {
+   var image = windowImage
+
+   if (isFullscreen()) {
+      //Among Us renders 4:3 (2800x2100) and letterboxes the sides in fullscreen.
+      //Crop those black bars off so the classifier sees the same framing it was trained on.
+      let w = Double(windowImage.width)
+      let h = Double(windowImage.height)
+      let expectedW = h * (2800.0 / 2100.0)
+      if (w > expectedW + 1) {
+         let inset = (w - expectedW) / 2.0
+         if let cropped = windowImage.cropping(to: CGRect(x: inset, y: 0, width: expectedW, height: h)) {
+            image = cropped
+         }
+      }
+   }
+
+   do {
+      let model = try VNCoreMLModel(for: AmongUsClassifier(configuration: MLModelConfiguration()).model)
+      let request = VNCoreMLRequest(model: model, completionHandler: AmongUsClassifierResult)
+      let handler = VNImageRequestHandler(cgImage: image)
+      try handler.perform([request])
+   } catch {
+      print(error)
+   }
+
+   //Write capture to disk as image for training data purposes
+   if (storeScreenshot != "") {
+      let picturesDirectory = FileManager.default.urls(for: .picturesDirectory, in: .userDomainMask)[0]
+      let imageUrl = picturesDirectory.appendingPathComponent("/Training Data/" + storeScreenshot + "/among" + UUID().uuidString + ".png", isDirectory: false)
+      try? image.png!.write(to: imageUrl)
+      storeScreenshot = ""
    }
 }
 
@@ -225,11 +278,16 @@ func AmongUsClassifierResult(request: VNRequest, error: Error?) {
     
     //Ignore results with a confidence smaller than 25%
     if results[0].confidence < 0.25 { return }
-    
-    globaleState.shared.score = Int(results[0].confidence * 100)
-    globaleState.shared.scene = results[0].identifier
-    
+
     gamestate = results[0].identifier
+
+    //@Published properties must be updated on the main thread (capture now runs on a background Task)
+    let score = Int(results[0].confidence * 100)
+    let scene = results[0].identifier
+    DispatchQueue.main.async {
+        globaleState.shared.score = score
+        globaleState.shared.scene = scene
+    }
 }
 
 func rescueMouse() {
