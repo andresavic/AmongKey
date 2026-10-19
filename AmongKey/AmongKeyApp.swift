@@ -108,8 +108,11 @@ let ESC_BUTTON = (x: 0.0171, y: 0.2060)          // the "Tasks" tab on the left 
 let MAP_BUTTON = (x: 0.9497, y: 0.0797)          // measured
 let MEETING_CHAT_BUTTON = (x: 0.7827, y: 0.0792) // measured
 let LOBBY_CHAT_BUTTON = (x: 0.7827, y: 0.0792)   // NOT measured yet, assumed to be in the same slot as in meetings
-let LOBBY_CHAT_SEND_BUTTON = (x: 0.7518, y: 0.7548)   // NOT measured yet (old value, converted)
-let MEETING_CHAT_SEND_BUTTON = (x: 0.6607, y: 0.7857) // NOT measured yet (old value, converted)
+// Send button of the chat panel, measured in a meeting (the white input box is directly to its left, u 0.21...0.64).
+// The old values pointed far below the panel, so "Return to send" clicked outside the chat and closed it.
+// The lobby chat is the same panel but its position has NOT been measured there.
+let LOBBY_CHAT_SEND_BUTTON = (x: 0.688, y: 0.625)
+let MEETING_CHAT_SEND_BUTTON = (x: 0.688, y: 0.625)
 
 var originalPosition = (x: 0.0, y: 0.0)
 var originalSize = (height: 0.0, width: 0.0)
@@ -164,8 +167,8 @@ func dlog(_ message: @autoclosure () -> String) {
 }
 
 // Scene check cadence (seconds), see requestClassify() / startClassify()
-var FAST_CHECK: Double = 0.5 // right after something changed
-var SLOW_CHECK: Double = 1.0 // once the scene has been stable for a while
+var FAST_CHECK: Double = 0.35 // right after something changed, and the whole time a meeting / chat is on screen
+var SLOW_CHECK: Double = 0.75 // once the scene has been stable for a while
 var RUN_BENCH: Int = 0
 
 func loadTune() {
@@ -473,7 +476,8 @@ func requestClassify(after delay: TimeInterval) {
 // and re-checked after ~0.4 s anyway.
 func startClassify(_ now: TimeInterval) {
     classifyBusy = true
-    nextClassifyAt = now + (stableCount >= 3 ? SLOW_CHECK : FAST_CHECK)
+    // Meetings and the chat change constantly (votes, panel opening, typing), so they keep the fast cadence
+    nextClassifyAt = now + ((stableCount >= 3 && gamestate != "Meeting" && !chatOpen) ? SLOW_CHECK : FAST_CHECK)
     let id = gameWindowID
     // The classifier input is deliberately identical to what the model was trained on: the whole window, or in
     // fullscreen a centred 4:3 crop. Do NOT replace this with the (more correct) game area crop used for
@@ -483,16 +487,19 @@ func startClassify(_ now: TimeInterval) {
     let shot = storeScreenshot
     storeScreenshot = ""
     let bounds = lastBounds
+    // Game area relative to the window's own top-left corner: what the overlay detectors look at
+    let gameRect = CGRect(x: X - bounds.minX, y: Y - bounds.minY, width: Width, height: Height)
     if (devMode && RUN_BENCH == 1 && !benchDone) {
         benchDone = true
         classifyQueue.async { if #available(macOS 13.0, *) { runBench(windowID: id, rect: bounds) } }
     }
-    classifyQueue.async { classify(windowID: id, crop: crop, store: shot) }
+    classifyQueue.async { classify(windowID: id, crop: crop, gameRect: gameRect, windowSize: bounds.size, store: shot) }
 }
 
 // Only touched from classifyQueue
 var lastSignature = [UInt8]()
 var skippedInARow = 0
+var lastOverlay = Overlay()
 
 // Tiny 16x12 grey thumbnail. Cheap (<< 1 ms) way to tell "the picture is practically the same as when we last
 // ran the network" without running it. In menus, lobby and chat the picture is almost static, which is where it pays off.
@@ -517,7 +524,7 @@ func signatureDistance(_ a: [UInt8], _ b: [UInt8]) -> Double {
 }
 
 // Runs on classifyQueue (background)
-func classify(windowID: CGWindowID, crop: CGRect?, store: String) {
+func classify(windowID: CGWindowID, crop: CGRect?, gameRect: CGRect, windowSize: CGSize, store: String) {
     defer { DispatchQueue.main.async { classifyBusy = false } }
     guard let request = visionRequest,
           let windowImage = CGWindowListCreateImage(.null, .optionIncludingWindow, windowID, [.boundsIgnoreFraming, .nominalResolution])
@@ -526,12 +533,20 @@ func classify(windowID: CGWindowID, crop: CGRect?, store: String) {
     var image = windowImage
     if let crop = crop, let cropped = windowImage.cropping(to: crop) { image = cropped }
 
+    // Deterministic screen checks on the same capture (see "Overlay detectors"): is the chat panel open, is this the
+    // voting / discussion screen? The model was trained on an older look of these screens and is unreliable on them.
+    // They run BEFORE the shortcut below on purpose: typing a few letters changes the picture too little to trigger a
+    // new classification, but it must still be noticed within one check.
+    let overlay = detectOverlays(windowImage, gameRect, windowSize)
+    let overlayChanged = (overlay != lastOverlay)
+    lastOverlay = overlay
+
     // Screen practically identical to the last time we ran the network? Then the answer is the same: skip it.
     // Compared against the last *classified* frame (not the previous frame), so a slow drift cannot creep past the
     // threshold unnoticed, and capped at 4 skips in a row so a real classification still happens regularly.
-    // A training-data capture (store != "") always goes through.
+    // A training-data capture (store != "") and any change in the overlay checks always go through.
     let sig = signature(of: image)
-    if (store == "" && skippedInARow < 4 && signatureDistance(sig, lastSignature) < 2.0) {
+    if (store == "" && !overlayChanged && skippedInARow < 4 && signatureDistance(sig, lastSignature) < 2.0) {
         skippedInARow += 1
         DispatchQueue.main.async { stableCount += 1 } // an unchanged picture counts as evidence the scene is stable
         return
@@ -542,9 +557,13 @@ func classify(windowID: CGWindowID, crop: CGRect?, store: String) {
     //Push the capture into the Image Classifier model
     //Source: https://developer.apple.com/documentation/createml/creating_an_image_classifier_model
     do { try VNImageRequestHandler(cgImage: image).perform([request]) } catch { dlog("vision error \(error)"); return }
+    var id = "", conf = 0
     if let best = (request.results as? [VNClassificationObservation])?.first, best.confidence >= 0.25 { //Ignore results below 25%
-        let id = best.identifier, conf = Int(best.confidence * 100)
-        DispatchQueue.main.async { applyResult(id, conf) }
+        id = best.identifier; conf = Int(best.confidence * 100)
+    }
+    // A weak model reading is dropped as before, unless a detector has something to say (or just changed)
+    if (id != "" || overlayChanged || overlay.chat || overlay.meetingHUD) {
+        DispatchQueue.main.async { applyResult(id, conf, overlay) }
     }
 
     //Write capture to disk as image for training data purposes (developer mode only)
@@ -557,8 +576,137 @@ func classify(windowID: CGWindowID, crop: CGRect?, store: String) {
 
 var lastConfidence = 0
 
+// Look at the screen RIGHT NOW (used when Tab / Return is pressed). The cached result can be up to a scheduled check
+// old, which is exactly how a keypress used to be judged against a chat that was already closed or open. One capture
+// on the main thread costs a few ms, only once per key press. Falls back to the cached values if the capture fails.
+func freshOverlay() -> Overlay {
+    guard gameWindowID != 0,
+          let img = CGWindowListCreateImage(.null, .optionIncludingWindow, gameWindowID, [.boundsIgnoreFraming, .nominalResolution])
+    else { return Overlay(chat: chatOpen, chatSend: chatSendEnabled, meetingHUD: false) }
+    let rect = CGRect(x: X - lastBounds.minX, y: Y - lastBounds.minY, width: Width, height: Height)
+    let o = detectOverlays(img, rect, lastBounds.size)
+    chatOpen = o.chat
+    chatSendEnabled = o.chatSend
+    return o
+}
+
+// Open the chat and put the cursor into the input box. The panel slides in, so instead of a fixed delay (a click
+// before it has arrived lands on the vote screen and closes it again) we poll for the panel and click the input
+// box only once it is really there. If it never shows up we do nothing rather than click blindly.
+func openChatThenFocusInput() {
+    guard gameWindowID != 0 else { return }
+    simulateClick(pos: MEETING_CHAT_BUTTON)
+    let id = gameWindowID
+    let rect = CGRect(x: X - lastBounds.minX, y: Y - lastBounds.minY, width: Width, height: Height)
+    let size = lastBounds.size
+    DispatchQueue.global(qos: .userInteractive).async {
+        for _ in 0..<12 { // up to ~0.7 s
+            usleep(60_000)
+            if let img = CGWindowListCreateImage(.null, .optionIncludingWindow, id, [.boundsIgnoreFraming, .nominalResolution]),
+               detectOverlays(img, rect, size).chat {
+                DispatchQueue.main.async {
+                    chatOpen = true
+                    requestClassify(after: 0.25)
+                    simulateClick(pos: (x: MEETING_CHAT_SEND_BUTTON.x - 0.0893, y: MEETING_CHAT_SEND_BUTTON.y))
+                }
+                return
+            }
+        }
+    }
+}
+
+// MARK: - Overlay detectors
+//
+// Two exact, cheap pixel checks on the game area of the capture we already have (no extra capture, ~0.2 ms):
+//  - chat panel open: the chat button in the top-right row turns TEAL while the panel is open (measured: 60 % teal
+//    in every screenshot with the chat open, with or without typed text, 0 % when closed). The Send button is NOT
+//    usable for this: it is grey while the input is empty, and a grey card on the vote screen looks the same.
+//    The Send button is only used to tell "there is something to send" (it turns teal once text is typed).
+//  - voting / discussion screen: its top-right button row is [notes][chat][settings][map] with an EMPTY gap at
+//    u = 0.74; during play that spot is the notes button (row is [notes][settings][map]), so the gap tells them apart.
+//    (While the chat is open its panel covers the notes button, which is why the chat check exists separately.)
+// All positions are fractions of the game area (see Layout), measured on macOS 27 screenshots of a meeting with and
+// without the chat open. Thresholds are deliberately loose: the checks look at boxes of pixels, not single pixels.
+
+struct Overlay: Equatable {
+    var chat = false        // chat panel open (input empty or not)
+    var chatSend = false    // ...and there is text to send
+    var meetingHUD = false  // voting / discussion screen
+}
+
+private let thumbW = 200, thumbH = 140 // aspect of the game area; a button is ~12 px wide here, plenty for box checks
+
+private func isNeutralLight(_ r: Int, _ g: Int, _ b: Int) -> Bool { abs(r - g) <= 8 && abs(g - b) <= 10 && r >= 150 && r <= 250 }
+private func isTeal(_ r: Int, _ g: Int, _ b: Int) -> Bool { g > r + 30 && b > r + 30 && g >= 90 }
+private func isWhite(_ r: Int, _ g: Int, _ b: Int) -> Bool { r >= 235 && g >= 235 && b >= 235 }
+
+// Share of pixels in a box (centre u,v, half size du,dv, all as fractions of the game area) that satisfy a colour test
+private func share(_ px: [UInt8], _ u: Double, _ v: Double, _ du: Double, _ dv: Double, _ test: (Int, Int, Int) -> Bool) -> Double {
+    let x0 = max(0, Int((u - du) * Double(thumbW))), x1 = min(thumbW - 1, max(x0, Int((u + du) * Double(thumbW))))
+    let y0 = max(0, Int((v - dv) * Double(thumbH))), y1 = min(thumbH - 1, max(y0, Int((v + dv) * Double(thumbH))))
+    var hit = 0, n = 0
+    for y in y0...y1 { for x in x0...x1 {
+        let o = (y * thumbW + x) * 4
+        n += 1
+        if test(Int(px[o]), Int(px[o + 1]), Int(px[o + 2])) { hit += 1 }
+    } }
+    return Double(hit) / Double(max(n, 1))
+}
+
+func detectOverlays(_ window: CGImage, _ gameRect: CGRect, _ windowSize: CGSize) -> Overlay {
+    // gameRect is in points relative to the window; the capture may be at another pixel scale
+    let sx = CGFloat(window.width) / max(windowSize.width, 1), sy = CGFloat(window.height) / max(windowSize.height, 1)
+    let r = CGRect(x: gameRect.minX * sx, y: gameRect.minY * sy, width: gameRect.width * sx, height: gameRect.height * sy)
+        .integral.intersection(CGRect(x: 0, y: 0, width: window.width, height: window.height))
+    guard r.width > 50, r.height > 50, let game = window.cropping(to: r) else { return Overlay() }
+
+    var px = [UInt8](repeating: 0, count: thumbW * thumbH * 4)
+    let drawn: Bool = px.withUnsafeMutableBytes { buf in
+        guard let ctx = CGContext(data: buf.baseAddress, width: thumbW, height: thumbH, bitsPerComponent: 8, bytesPerRow: thumbW * 4,
+                                  space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return false }
+        ctx.interpolationQuality = .medium
+        ctx.draw(game, in: CGRect(x: 0, y: 0, width: thumbW, height: thumbH))
+        return true
+    }
+    if !drawn { return Overlay() }
+
+    var o = Overlay()
+    // Send button teal (text typed) with the white input box to its left (typed text only covers part of it)
+    o.chatSend = share(px, 0.688, 0.625, 0.025, 0.02, isTeal) >= 0.45 && share(px, 0.42, 0.625, 0.12, 0.012, isWhite) >= 0.5
+    // Chat button highlighted teal = panel open. The Send check is the fallback for a layout where the button is elsewhere (lobby).
+    o.chat = share(px, 0.783, 0.079, 0.015, 0.03, isTeal) >= 0.30 || o.chatSend
+    // Voting / discussion screen: buttons at u 0.69, 0.85, 0.95 and the empty gap at 0.74
+    o.meetingHUD = share(px, 0.69, 0.079, 0.012, 0.03, isNeutralLight) >= 0.30
+        && share(px, 0.74, 0.079, 0.012, 0.03, isNeutralLight) <= 0.10
+        && share(px, 0.85, 0.079, 0.012, 0.03, isNeutralLight) >= 0.20
+        && share(px, 0.95, 0.079, 0.012, 0.03, isNeutralLight) >= 0.35
+    return o
+}
+
 // Main thread
-func applyResult(_ id: String, _ conf: Int) {
+var chatOpen = false        // is the chat panel open right now (from the overlay detector)
+var chatSendEnabled = false // ...and is there text to send (the Send button is only teal then)
+
+func applyResult(_ modelID: String, _ modelConf: Int, _ overlay: Overlay) {
+    var id = modelID.isEmpty ? gamestate : modelID
+    var conf = modelConf
+    chatOpen = overlay.chat
+    chatSendEnabled = overlay.chatSend
+    dlog("overlay chat=\(overlay.chat) send=\(overlay.chatSend) votingHUD=\(overlay.meetingHUD) model=\(modelID.isEmpty ? "-" : modelID) \(modelConf)%")
+
+    // Why the override: on the current meeting screens the model answers "Ingame" at 38-52 %. Ingame means WASD,
+    // Space, Q, R ... are turned into clicks on the joystick / Use button, which land on the chat or the vote
+    // screen and close the chat while you are typing. The detectors are exact for these two screens, so they win.
+    if overlay.chat {
+        id = "Meeting" // one consistent chat path, whatever the model thinks (it often says Lobbychat / Ingame)
+        conf = max(conf, 90)
+    } else if (overlay.meetingHUD && !((id == "Ingame" || id == "Lobby") && conf >= 90)) {
+        // ...but a confident Ingame / Lobby reading is trusted, so a detector false positive cannot take away
+        // the controls in a real match.
+        id = "Meeting"
+        conf = max(conf, 90)
+    }
+
     // "Stable" needs a confident reading: a scene flapping at 40-60 % must keep the fast cadence
     if (id == gamestate && conf >= 80) { stableCount += 1 } else { stableCount = 0 }
     if (stableCount == 0) { nextClassifyAt = min(nextClassifyAt, ProcessInfo.processInfo.systemUptime + FAST_CHECK) }

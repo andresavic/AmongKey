@@ -52,8 +52,8 @@ If you build your own copy: macOS treats every re-signed build as a new app. If 
 | `Q` | Kill |
 | `V` | Vent |
 | `F` | Role ability |
-| `Tab` | Map while playing; open chat in the lobby and in meetings |
-| `Return` | Send chat message |
+| `Tab` | Map while playing; open the chat in the lobby and in meetings (press again to close it) |
+| `Return` | Send the chat message (only while the chat is open and has text in it) |
 | `Esc` | Tap the *Tasks* tab |
 
 ## What changed in this update
@@ -67,6 +67,13 @@ Tested on an Apple M1 Mac on macOS 27.0.1. All changes are in `AmongKeyApp.swift
 - Movement keys are released even if you leave the game while holding them, opening the window again no longer registers the key handlers twice, and typing digits in chat no longer triggers screenshot saving.
 - Several force-unwraps in the window handling were replaced by safe checks.
 
+**Chat and voting screen**
+
+- While the chat is open or the voting screen is showing, the game keys (`W` `A` `S` `D`, `Space`, `Q`, `R`, ...) do nothing, so you can type freely and nothing clicks on top of the vote screen. Before, typing in the chat could close it, because the scene model (trained on an older look of these screens) read them as "in game" at 38-52 % confidence.
+- Both screens are now recognised from the screenshot AmongKey already takes, with two cheap exact checks instead of the model: the chat button in the top row turns teal while the chat is open, and the voting screen's button row has a gap where gameplay has the notes button. The model is still used for everything else, and a confident "in game" reading is never overridden.
+- `Return` sends with the real Send button (its old position pointed far below the chat panel) and puts the cursor back into the input box. `Tab` opens the chat and clicks into the input box once the panel has actually slid in, or closes it again if it is open. Both look at the screen at the moment of the key press instead of at a result that can be a check old.
+- The window is tidied up: consistent text sizes and spacing, and the hint under the checkbox is no longer cut off.
+
 **Lower CPU / power use** (it matters on laptops and on smaller Macs)
 
 - The Core ML model is loaded once, and runs on the Neural Engine instead of the GPU the game is drawing on. It used to be loaded from disk on every check.
@@ -79,17 +86,16 @@ Measured on the M1 during practice mode (single 45 s runs, so treat as indicativ
 
 ## Not re-verified yet
 
-The layout was re-measured from screenshots of the in-game HUD and the meeting screen. The following still use the previous values (converted to the new coordinates) and are marked `NOT measured` in the code. Screenshots (fullscreen, `Cmd+Shift+3`) of these screens are all that is needed to fix them:
+The layout was re-measured from screenshots of the in-game HUD, the meeting screen and the meeting chat (input box and Send button). The following are still assumptions and are marked `NOT measured` in the code. Screenshots (`Cmd+Shift+3`) of these screens are all that is needed to fix them:
 
-- chat input box and send button, in the lobby and in meetings
-- the lobby chat button (assumed to sit in the same slot as in meetings)
+- the lobby chat: its button (assumed to sit in the same slot as in meetings) and its panel (assumed to be the same panel as in meetings)
 - Kill, Sabotage, Vent and role-ability buttons (impostor only)
 
 ## Developer notes
 
 Developer mode is off unless the file `~/.amongkey_tune` exists when the app starts, so normal users pay nothing for it. When it exists:
 
-- coordinates and timings are re-read every two seconds, so you can tune a running app without rebuilding (and re-granting the permissions). File format: `joyX joyY joyDist titlebar moveMode fastCheckSeconds slowCheckSeconds runBenchmark`, for example `0.0755 0.8911 0.055 32 1 0.5 1.0 0`.
+- coordinates and timings are re-read every two seconds, so you can tune a running app without rebuilding (and re-granting the permissions). File format: `joyX joyY joyDist titlebar moveMode fastCheckSeconds slowCheckSeconds runBenchmark`, for example `0.0755 0.8911 0.055 32 1 0.35 0.75 0`.
 - a log is written to `~/Library/Logs/AmongKey-debug.log` (scene changes, window geometry, key codes while Among Us is in front).
 - `1`-`5` save a training screenshot into `~/Pictures/Training Data/<Ingame|Lobby|Lobbychat|Meeting|Menu>/` (create the folders first).
 - setting the last value to `1` runs a one-off benchmark of the building blocks (window query, capture, classifier on Neural Engine / GPU / CPU) and writes it to the log.
