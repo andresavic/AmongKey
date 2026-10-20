@@ -112,4 +112,4 @@ https://developer.apple.com/documentation/createml/creating_an_image_classifier_
 
 ## Thanks
 
-Big thanks to [Andre Savic](https://github.com/andresavic) for creating AmongKey and for keeping it free and open for everybody. This update only builds on his idea, his trained model and his code, and it exists because he shared them.
+Thanks to [varadarajjborkar/AmongKey](https://github.com/varadarajjborkar/AmongKey) for updating the app.
