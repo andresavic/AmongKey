@@ -13,7 +13,7 @@ import SwiftUI
 // cheapest possible order: release logic first where it must always run, then bail out unless the game is in front.
 
 // Keys that can change what is on screen (chat, menus, report, ...). After one of them the scene is re-checked
-// ~0.4 s later (instead of waiting for the next scheduled check), so the key mapping follows the UI quickly even
+// ~0.25 s later (instead of waiting for the next scheduled check), so the key mapping follows the UI quickly even
 // though the scheduled checks have been made much rarer.
 let sceneKeys: Set<UInt16> = [36, 48, 53, 49, 14, 15]
 
@@ -70,14 +70,18 @@ func createKeybinding() {
             usleep(10000)
             simulateClick(pos: (x: LOBBY_CHAT_SEND_BUTTON.x - 0.125, y: LOBBY_CHAT_SEND_BUTTON.y))
             break;
-        case (36, "Meeting"): // Return to send message
-            if (!isFullscreen()) {
-                simulateKeypress(key: 53) //Escape to blur input field
+        case (36, "Meeting"): // Return sends the typed message, but only while the chat panel is open with text in it
+            // Judged on the screen as it is right now, not on a result that may be a check old. Without text (Send is
+            // grey) there is nothing to send, and outside the chat this click would land on the vote screen.
+            // No Esc first (the lobby path does that): clicking Send already takes the focus off the text field, and
+            // Esc could close the panel instead.
+            if (freshOverlay().chatSend) {
+                pollGameWindow() // refresh the coordinates right before clicking, the window may have been moved
+                simulateClick(pos: MEETING_CHAT_SEND_BUTTON)
+                usleep(10000)
+                // ...then put the cursor back into the input box so you can keep typing the next message
+                simulateClick(pos: (x: MEETING_CHAT_SEND_BUTTON.x - 0.125, y: MEETING_CHAT_SEND_BUTTON.y))
             }
-            pollGameWindow()
-            simulateClick(pos: MEETING_CHAT_SEND_BUTTON)
-            usleep(10000)
-            simulateClick(pos: (x: MEETING_CHAT_SEND_BUTTON.x - 0.125, y: MEETING_CHAT_SEND_BUTTON.y))
             break;
         case (49, "Ingame"), (14, "Ingame"), (49, "Lobby"), (14, "Lobby"): // Space button
             simulateClick(pos: USE_BUTTON)
@@ -105,10 +109,13 @@ func createKeybinding() {
             usleep(100000)
             simulateClick(pos: (x: LOBBY_CHAT_SEND_BUTTON.x - 0.0893, y: LOBBY_CHAT_SEND_BUTTON.y))
             break;
-        case (48, "Meeting"): // Tab to open chat and focus input field
-            simulateClick(pos: MEETING_CHAT_BUTTON)
-            usleep(100000)
-            simulateClick(pos: (x: MEETING_CHAT_SEND_BUTTON.x - 0.0893, y: MEETING_CHAT_SEND_BUTTON.y))
+        case (48, "Meeting"): // Tab toggles the chat: open + focus the input field, or close it again
+            if (freshOverlay().chat) {
+                simulateClick(pos: MEETING_CHAT_BUTTON) // already open: close it, nothing else to click
+                chatOpen = false
+            } else {
+                openChatThenFocusInput()
+            }
             break;
         // Keys 1-5 save training screenshots. Developer mode only: it used to trigger while typing digits in chat,
         // and every trigger PNG-encodes a full window capture.
@@ -131,6 +138,6 @@ func createKeybinding() {
             break
         }
 
-        if (sceneKeys.contains(event.keyCode)) { requestClassify(after: 0.4) }
+        if (sceneKeys.contains(event.keyCode)) { requestClassify(after: 0.25) }
     }
 }

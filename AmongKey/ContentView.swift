@@ -20,40 +20,48 @@ struct ContentView: View {
    // Remembered between launches. Default on: the first run needs it to confirm the game is recognised.
    @AppStorage("showLiveStatus") private var showLiveStatus = true
 
+    // Same window as before (artwork on top, status, setup checkbox, update button), only tidied up:
+    // one left edge for everything below the artwork, two text sizes (13 pt for what you read, 11 pt for the
+    // hint), one vertical rhythm, and the hint wraps instead of being cut off.
     var body: some View {
         VStack(spacing: 0) {
             Image("UI")
                .resizable()
                .frame(width: 400, height: 520)
 
-            if showLiveStatus {
-                Text((self.state.scene != "" ? self.state.scene : "Nothing") + " - Confidence: " + String(self.state.score) + "%")
-                   .foregroundColor(Color.white)
-                   .frame(maxWidth: .infinity, alignment: .leading)
-                   .padding(.leading, 25).padding(.top, 10)
-            }
+            VStack(alignment: .leading, spacing: 14) {
+                if showLiveStatus {
+                    Text((self.state.scene != "" ? self.state.scene : "Nothing") + " - Confidence: " + String(self.state.score) + "%")
+                       .font(.system(size: 13))
+                       .foregroundColor(Color.white)
+                }
 
-            Toggle(isOn: $showLiveStatus) {
-                Text("Show live detection (setup mode)").foregroundColor(Color.white)
+                // The checkbox and its explanation belong together, so they sit closer than the rows around them
+                VStack(alignment: .leading, spacing: 5) {
+                    Toggle(isOn: $showLiveStatus) {
+                        Text("Show live detection (setup mode)")
+                           .font(.system(size: 13))
+                           .foregroundColor(Color.white)
+                    }
+                       .toggleStyle(.checkbox)
+                       .onChange(of: showLiveStatus) { on in setLiveStatus(on) }
+
+                    Text("Useful the first time, to check that AmongKey recognises the game. Turn it off afterwards: it uses a little less CPU.")
+                       .font(.system(size: 11))
+                       .foregroundColor(Color.gray)
+                       .lineSpacing(3)
+                       .fixedSize(horizontal: false, vertical: true) // wrap, never truncate
+                }
+
+                // The old force-unwrapped URL(string:)! could crash on a malformed update.json; only offer https links
+                if let url = URL(string: self.state.download), url.scheme == "https" {
+                   Button("Update available"){
+                      openURL(url)
+                   }
+                }
             }
-               .toggleStyle(.checkbox)
                .frame(maxWidth: .infinity, alignment: .leading)
-               .padding(.leading, 25).padding(.top, 10)
-               .onChange(of: showLiveStatus) { on in setLiveStatus(on) }
-
-            Text("Useful the first time, to check that AmongKey recognises the game. Turn it off afterwards: it uses a little less CPU.")
-               .font(.caption)
-               .foregroundColor(Color.gray)
-               .frame(maxWidth: .infinity, alignment: .leading)
-               .padding(.horizontal, 25).padding(.top, 2).padding(.bottom, 20)
-
-            // The old force-unwrapped URL(string:)! could crash on a malformed update.json; only offer https links
-            if let url = URL(string: self.state.download), url.scheme == "https" {
-               Button("Update available"){
-                  openURL(url)
-               }
-                  .padding(.bottom, 25)
-            }
+               .padding(.horizontal, 25).padding(.top, 18).padding(.bottom, 24)
 
         }.frame(minWidth: 400, maxWidth: 400, alignment: .topLeading).background(Color.black)
     }
